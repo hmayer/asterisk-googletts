@@ -1,3 +1,6 @@
+2013-03-14 Henrique Mayer <hmayer@gmail.com> - 0.7-hmayer
+	Put user configuration in a .ini-style file for my convenience.
+
 2012-30-09 Lefteris Zafiris <zaf.000@gmail.com> - 0.7
 	Added user defined speed factor option from dialplan.
 	Sox version auto-detection.	Automatic sound format detection.

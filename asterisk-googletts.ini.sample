@@ -1,0 +1,24 @@
+[default]
+;Default language
+language = en-US
+
+;Output speed factor
+speed = 1
+
+;Use of cache mechanism
+usecache = 1
+
+;Cache directory path
+cachedir = /var/cache/asterisk-googletts
+
+;Output audio samplerate
+;Leave it blank to auto-detect
+samplerate =
+
+;SoX Version
+;Leave it blank to auto-detect
+sox_ver = 12
+
+;Verbose debug messages
+debug = 0
+

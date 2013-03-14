@@ -41,35 +41,20 @@ use Digest::MD5 qw(md5_hex);
 use CGI::Util qw(escape);
 use LWP::UserAgent;
 use LWP::ConnCache;
+use Config::IniFiles;
 $| = 1;
 
 # ----------------------------- #
 #   User defined parameters:    #
 # ----------------------------- #
-# Default language              #
-my $lang = "en-US";
-
-# Output speed factor           #
-my $speed = 1;
-
-# Use of cache mechanism        #
-my $usecache = 1;
-
-# Cache directory path          #
-my $cachedir = "/tmp";
-
-# Output audio sample rate      #
-# Leave blank to auto-detect    #
-my $samplerate = "";
-
-# SoX Version                   #
-# Leave blank to auto-detect    #
-my $sox_ver = 12;
-
-# Verbose debugging messages    #
-my $debug = 0;
-
-# ----------------------------- #
+my $cfg = Config::IniFiles->new(-file => '/etc/asterisk-googletts.ini');
+my $lang = $cfg->val('default', 'language', 'en-US');
+my $speed = $cfg->val('default', 'speed', 1);
+my $usecache = $cfg->val('default', 'usecache', 1);
+my $cachedir = $cfg->val('default', 'cachedir', '/tmp');
+my $samplerate = $cfg->val('default', 'samplerate', '');
+my $sox_ver = $cfg->val('default', 'sox_ver', 12);
+my $debug = $cfg->val('default', 'debug', 0);
 
 my %AGI;
 my @text;

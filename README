@@ -9,10 +9,11 @@ It supports a variety of different languages.
 ------------
 Requirements
 ------------
-Perl         The Perl Programming Language
-perl-libwww  The World-Wide Web library for Perl
-sox          Sound eXchange, sound processing program
-mpg123       MPEG Audio Player and decoder
+Perl         		The Perl Programming Language
+perl-libwww  		The World-Wide Web library for Perl
+libconfig-inifiles-perl	A module for reading .ini-style configuration files
+sox          		Sound eXchange, sound processing program
+mpg123       		MPEG Audio Player and decoder
 Internet access in order to contact google and get the voice data.
 
 ------------
@@ -21,6 +22,9 @@ Installation
 To install copy googletts.agi to your agi-bin directory.
 Usually this is /var/lib/asterisk/agi-bin/
 To make sure check your /etc/asterisk/asterisk.conf file
+
+Copy asterisk-googletts.ini.sample to /etc/asterisk-googletts.ini
+Make changes in this file as you need.
 
 -----
 Usage
@@ -209,6 +213,6 @@ The GoogleTTS script for asterisk is distributed under the GNU General Public
 License v2. See COPYING for details.
 
 --------
-Homepage
+Original Zaf's version Homepage
 --------
 http://zaf.github.com/asterisk-googletts/
