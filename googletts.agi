@@ -3,7 +3,7 @@
 #
 # AGI script that uses Google's translate text to speech engine.
 #
-# Copyright (C) 2011 - 2012, Lefteris Zafiris <zaf.000@gmail.com>
+# Copyright (C) 2011 - 2014, Lefteris Zafiris <zaf.000@gmail.com>
 #
 # This program is free software, distributed under the terms of
 # the GNU General Public License Version 2. See the COPYING file
@@ -30,15 +30,18 @@
 # Chace:             $usecache
 # Chache directory:  $cachedir
 # SoX Version:       $sox_ver
+# SSL encryption:    $use_ssl
 #
 
 use warnings;
 use strict;
+use utf8;
+use Encode qw(decode encode);
 use File::Temp qw(tempfile);
 use File::Copy qw(move);
 use File::Path qw(mkpath);
 use Digest::MD5 qw(md5_hex);
-use CGI::Util qw(escape);
+use URI::Escape;
 use LWP::UserAgent;
 use LWP::ConnCache;
 use Config::IniFiles;
@@ -66,11 +69,12 @@ my $filename;
 my $fexten;
 my @result;
 my $name;
+my $url;
 my $intkey  = "";
 my $tmpdir  = "/tmp";
 my $maxlen  = 4096;
 my $timeout = 10;
-my $url     = "http://translate.google.com/translate_tts";
+my $host    = "translate.google.com/translate_tts";
 my $sox     = `/usr/bin/which sox`;
 my $mpg123  = `/usr/bin/which mpg123`;
 
@@ -95,6 +99,7 @@ if (!$sox_ver) {
 warn "$name Found sox version $sox_ver in: $sox, mpg123 in: $mpg123\n" if ($debug);
 
 # Sanitising input #
+$AGI{arg_1} = decode('utf8', $AGI{arg_1});
 for ($AGI{arg_1}) {
 	s/[\\|*~<>^\(\)\[\]\{\}[:cntrl:]]/ /g;
 	s/\s+/ /g;
@@ -102,7 +107,7 @@ for ($AGI{arg_1}) {
 	die "$name No text passed for synthesis.\n" if (!length);
 	# Split input to comply with google tts requirements #
 	$_ .= "." unless (/^.+[.,?!:;]$/);
-	@text = /.{1,100}[.,?!:;]|.{1,100}\s/g;
+	@text = /.{1,99}[.,?!:;]|.{1,99}\s/g;
 }
 
 # Setting language, interrupt keys and speed rate #
@@ -148,15 +153,24 @@ elsif ($samplerate == 44100) { $fexten = "sln44"; }
 elsif ($samplerate == 48000) { $fexten = "sln48"; }
 else                         { ($fexten, $samplerate) =  ("sln", 8000); }
 
-$ua = LWP::UserAgent->new;
-$ua->agent("Mozilla/5.0 (X11; Linux; rv:8.0) Gecko/20100101");
+
+# Initialise User angent #
+if ($use_ssl) {
+	$url = "https://" . $host;
+	$ua  = LWP::UserAgent->new(ssl_opts => {verify_hostname => 1});
+} else {
+	$url = "http://" . $host;
+	$ua  = LWP::UserAgent->new;
+}
+$ua->agent("Mozilla/5.0 (X11; Linux i686; rv:27.0) Gecko/20100101");
 $ua->env_proxy;
 $ua->conn_cache(LWP::ConnCache->new());
 $ua->timeout($timeout);
 
 foreach my $line (@text) {
+	$line = encode('utf8', $line);
 	$line =~ s/^\s+|\s+$//g;
-	last if (length($line) == 0);
+	next if (length($line) == 0);
 	if ($debug) {
 		warn "$name Text passed for synthesis: $line\n",
 			"$name Language: $lang, Interrupt keys: $intkey, Sample rate: $samplerate\n",
@@ -172,7 +186,7 @@ foreach my $line (@text) {
 			next;
 		}
 	}
-	$line = escape($line);
+	$line = uri_escape($line);
 	warn "$name URL passed: $url?tl=$lang&q=$line\n" if ($debug);
 
 	# Hnadle interrupts #

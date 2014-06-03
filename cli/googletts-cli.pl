@@ -3,7 +3,7 @@
 #
 # Script that uses Google Translate for text to speech synthesis.
 #
-# Copyright (C) 2012, Lefteris Zafiris <zaf.000@gmail.com>
+# Copyright (C) 2012 - 2014, Lefteris Zafiris <zaf.000@gmail.com>
 #
 # This program is free software, distributed under the terms of
 # the GNU General Public License Version 2.
@@ -11,9 +11,11 @@
 
 use warnings;
 use strict;
+use utf8;
+use Encode qw(decode encode);
 use Getopt::Std;
 use File::Temp qw(tempfile);
-use CGI::Util qw(escape);
+use URI::Escape;
 use LWP::UserAgent;
 use LWP::ConnCache;
 
@@ -23,17 +25,20 @@ my @mp3list;
 my @soxargs;
 my $samplerate;
 my $input;
+my $url;
+my $ua;
+my $use_ssl = 0;
 my $speed   = 1;
 my $lang    = "en-US";
 my $tmpdir  = "/tmp";
 my $timeout = 10;
-my $url     = "http://translate.google.com/translate_tts";
+my $host    = "translate.google.com/translate_tts";
 my $mpg123  = `/usr/bin/which mpg123`;
 my $sox     = `/usr/bin/which sox`;
 
 VERSION_MESSAGE() if (!@ARGV);
 
-getopts('o:l:r:t:f:s:hqv', \%options);
+getopts('o:l:r:t:f:s:heqv', \%options);
 
 # Dislpay help messages #
 VERSION_MESSAGE() if (defined $options{h});
@@ -46,7 +51,7 @@ if (!$mpg123 || !$sox) {
 chomp($mpg123, $sox);
 
 parse_options();
-
+$input = decode('utf8', $input);
 for ($input) {
 	# Split input to comply with google tts requirements #
 	s/[\\|*~<>^\n\(\)\[\]\{\}[:cntrl:]]/ /g;
@@ -57,20 +62,28 @@ for ($input) {
 		exit 1;
 	}
 	$_ .= "." unless (/^.+[.,?!:;]$/);
-	@text = /.{1,100}[.,?!:;]|.{1,100}\s/g;
+	@text = /.{1,99}[.,?!:;]|.{1,99}\s/g;
 }
 
-my $ua = LWP::UserAgent->new;
-$ua->agent("Mozilla/5.0 (X11; Linux; rv:8.0) Gecko/20100101");
+# Initialise User angent #
+if ($use_ssl) {
+	$url = "https://" . $host;
+	$ua  = LWP::UserAgent->new(ssl_opts => {verify_hostname => 1});
+} else {
+	$url = "http://" . $host;
+	$ua  = LWP::UserAgent->new;
+}
+$ua->agent("Mozilla/5.0 (X11; Linux i686; rv:27.0) Gecko/20100101");
 $ua->env_proxy;
 $ua->conn_cache(LWP::ConnCache->new());
 $ua->timeout($timeout);
 
 foreach my $line (@text) {
 	# Get speech data from google and save them in temp files #
+	$line = encode('utf8', $line);
 	$line =~ s/^\s+|\s+$//g;
 	next if (length($line) == 0);
-	$line = escape($line);
+	$line = uri_escape($line);
 	my ($mp3_fh, $mp3_name) = tempfile(
 		"tts_XXXXXX",
 		DIR    => $tmpdir,
@@ -150,6 +163,10 @@ sub parse_options {
 		$options{s} =~ /\d+/ ? $speed = $options{s}
 			: say_msg("Invalind speed factor, using default.");
 	}
+	# set SSL encryption #
+	if (defined $options{e}) {
+		$use_ssl = 1;
+	}
 	return;
 }
 
@@ -164,6 +181,7 @@ sub VERSION_MESSAGE {
 		" -r <rate>      specify the output sampling rate in Hertz (default 22050)\n",
 		" -s <factor>    specify the output speed factor\n",
 		" -q             quiet (Don't print any messages or warnings)\n",
+		" -e             use SSL for encryption\n",
 		" -h             this help message\n",
 		" -v             suppoted languages list\n\n",
 		"Examples:\n",
